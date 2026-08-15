@@ -82,18 +82,18 @@ def build_feature_record():
         "day": time_feats["day"],
         "month": time_feats["month"],
         "day_of_week": time_feats["day_of_week"],
-        "temp": weather["main"]["temp"],
-        "humidity": weather["main"]["humidity"],
-        "wind_speed": weather["wind"]["speed"],
-        "pm2_5": components["pm2_5"],
-        "pm10": components["pm10"],
-        "co": components["co"],
-        "no2": components["no2"],
-        "so2": components["so2"],
-        "o3": components["o3"],
+        "temp": float(weather["main"]["temp"]),
+        "humidity": float(weather["main"]["humidity"]),
+        "wind_speed": float(weather["wind"]["speed"]),
+        "pm2_5": float(components["pm2_5"]),
+        "pm10": float(components["pm10"]),
+        "co": float(components["co"]),
+        "no2": float(components["no2"]),
+        "so2": float(components["so2"]),
+        "o3": float(components["o3"]),
         "aqi": aqi,
         "dominant_pollutant": dominant
-    }
+        }
     return record
 
 if __name__ == "__main__":
