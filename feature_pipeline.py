@@ -83,7 +83,7 @@ def build_feature_record():
         "month": time_feats["month"],
         "day_of_week": time_feats["day_of_week"],
         "temp": float(weather["main"]["temp"]),
-        "humidity": float(weather["main"]["humidity"]),
+        "humidity": int(weather["main"]["humidity"]),
         "wind_speed": float(weather["wind"]["speed"]),
         "pm2_5": float(components["pm2_5"]),
         "pm10": float(components["pm10"]),

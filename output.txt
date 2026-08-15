@@ -1,0 +1,153 @@
+2026-08-15 16:36:39,656 INFO: Initializing external client
+2026-08-15 16:36:39,656 INFO: Base URL: https://eu-west.cloud.hopsworks.ai:443
+2026-08-15 16:36:43,376 INFO: Python Engine initialized.
+
+Logged in to project, explore it here https://eu-west.cloud.hopsworks.ai:443/p/42189
+Reading 2023-08-11 to 2023-10-10...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.68s) 
+  -> 1440 rows
+Reading 2023-10-10 to 2023-12-09...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.79s) 
+  -> 1440 rows
+Reading 2023-12-09 to 2024-02-07...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.92s) 
+  -> 1440 rows
+Reading 2024-02-07 to 2024-04-07...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.47s) 
+  -> 1440 rows
+Reading 2024-04-07 to 2024-06-06...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.74s) 
+  -> 1440 rows
+Reading 2024-06-06 to 2024-08-05...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.49s) 
+  -> 1440 rows
+Reading 2024-08-05 to 2024-10-04...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.46s) 
+  -> 1440 rows
+Reading 2024-10-04 to 2024-12-03...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.61s) 
+  -> 1440 rows
+Reading 2024-12-03 to 2025-02-01...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.50s) 
+  -> 1440 rows
+Reading 2025-02-01 to 2025-04-02...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.49s) 
+  -> 1440 rows
+Reading 2025-04-02 to 2025-06-01...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.57s) 
+  -> 1440 rows
+Reading 2025-06-01 to 2025-07-31...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.56s) 
+  -> 1440 rows
+Reading 2025-07-31 to 2025-09-29...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.61s) 
+  -> 1440 rows
+Reading 2025-09-29 to 2025-11-28...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.46s) 
+  -> 1440 rows
+Reading 2025-11-28 to 2026-01-27...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.81s) 
+  -> 1440 rows
+Reading 2026-01-27 to 2026-03-28...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.74s) 
+  -> 1440 rows
+Reading 2026-03-28 to 2026-05-27...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.34s) 
+  -> 1440 rows
+Reading 2026-05-27 to 2026-07-26...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+Reading data from Hopsworks, using Hopsworks Feature Query Service   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.52s) 
+  -> 1440 rows
+Reading 2026-07-26 to 2026-08-16...
+Reading data from Hopsworks, using Hopsworks Feature Query Service.   
+Reading data from Hopsworks, using Hopsworks Feature Query Service..   
+Reading data from Hopsworks, using Hopsworks Feature Query Service...   
+
+Finished: Reading data from Hopsworks, using Hopsworks Feature Query Service (1.22s) 
+  -> 446 rows
+
+Total rows read: 26366
+2026-08-15 16:37:33,621 INFO: Closing external client and cleaning up certificates.
+2026-08-15 16:37:33,624 INFO: Connection closed.
