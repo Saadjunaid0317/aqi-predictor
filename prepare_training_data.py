@@ -32,8 +32,9 @@ def read_feature_group_in_chunks(fg, start_date, end_date, chunk_days=60):
 
     return pd.concat(chunks, ignore_index=True)
 
-def load_training_data():
-    df = read_feature_group_in_chunks(fg, "2023-08-11", "2026-08-16", chunk_days=60)
+def load_training_data(end_date=None):
+    end_date = end_date or datetime.now().strftime("%Y-%m-%d")
+    df = read_feature_group_in_chunks(fg, "2023-08-11", end_date, chunk_days=60)
     print(f"\nTotal rows read: {len(df)}")
 
     df = df.sort_values("timestamp").reset_index(drop=True)

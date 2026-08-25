@@ -1,0 +1,42 @@
+name: Daily AQI Model Training
+
+on:
+  schedule:
+    - cron: "0 3 * * *"      # runs once a day at 03:00 UTC
+  workflow_dispatch:          # lets us trigger it manually too, for testing
+
+permissions:
+  contents: write   # needed so the "Commit updated models" step can push
+
+jobs:
+  train-and-register:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Retrain models and register in Hopsworks
+        env:
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+        run: python register_models.py
+
+      - name: Commit updated models
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add model_24h/model.pkl model_48h/model.pkl model_72h/model.pkl shap_background.csv
+          git diff --staged --quiet || git commit -m "Retrain and register models [automated]"
+          # Training takes a few minutes, during which the hourly pipeline may have
+          # pushed its own (non-overlapping) recent_history.csv update - rebase onto
+          # it rather than risk a rejected push.
+          git pull --rebase origin main
+          git push

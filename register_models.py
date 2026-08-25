@@ -11,7 +11,16 @@ from prepare_training_data import load_training_data
 load_dotenv()
 HOPSWORKS_API_KEY = os.getenv("HOPSWORKS_API_KEY")
 
+SHAP_BACKGROUND_FILE = "shap_background.csv"
+SHAP_BACKGROUND_SAMPLES = 150
+
 X_train, X_test, targets = load_training_data()
+
+# Refresh the SHAP explanation panel's background sample from this same
+# training pull, so it tracks the live model rather than a one-time snapshot.
+idx = np.linspace(0, len(X_train) - 1, SHAP_BACKGROUND_SAMPLES, dtype=int)
+X_train.iloc[idx].reset_index(drop=True).to_csv(SHAP_BACKGROUND_FILE, index=False)
+print(f"Refreshed {SHAP_BACKGROUND_FILE} ({SHAP_BACKGROUND_SAMPLES} rows).")
 
 project = hopsworks.login(api_key_value=HOPSWORKS_API_KEY)
 mr = project.get_model_registry()   # the Model Registry, same pattern as get_feature_store()
