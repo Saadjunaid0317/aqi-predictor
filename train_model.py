@@ -33,8 +33,14 @@ for horizon in ["24h", "48h", "72h"]:
 
 print("\n=== Best model per horizon ===")
 for horizon in ["24h", "48h", "72h"]:
-    best_name = max(models.keys(), key=lambda n: results[(horizon, n)])
-    print(f"{horizon}: {best_name} (R2 = {results[(horizon, best_name)]:.3f})")
+    best_name = None
+    best_r2 = None
+    for name in models.keys():
+        r2 = results[(horizon, name)]
+        if best_r2 is None or r2 > best_r2:
+            best_r2 = r2
+            best_name = name
+    print(f"{horizon}: {best_name} (R2 = {best_r2:.3f})")
 
 print("\n=== Persistence baseline check (per mentor's real bar: beat this, not R2>=0.70) ===")
 for horizon in ["24h", "48h", "72h"]:
@@ -47,5 +53,8 @@ for horizon in ["24h", "48h", "72h"]:
     ridge.fit(X_train, y_train)
     ridge_r2 = evaluate("Our Ridge model", y_test, ridge.predict(X_test))
 
-    verdict = "BEATS persistence ✅" if ridge_r2 > persistence_r2 else "loses to persistence ❌"
+    if ridge_r2 > persistence_r2:
+        verdict = "BEATS persistence ✅"
+    else:
+        verdict = "loses to persistence ❌"
     print(f"  -> {verdict}")

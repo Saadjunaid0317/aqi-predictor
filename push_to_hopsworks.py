@@ -29,8 +29,11 @@ def log_alert_if_hazardous(record):
 
     cutoff = record["timestamp"] - (ALERT_RETENTION_DAYS * 24 * 3600)
     with open(ALERTS_LOG_FILE, "r") as f:
-        rows = list(csv.DictReader(f))
-    rows = [r for r in rows if int(r["timestamp"]) >= cutoff]
+        all_rows = list(csv.DictReader(f))
+    rows = []
+    for row in all_rows:
+        if int(row["timestamp"]) >= cutoff:
+            rows.append(row)
     with open(ALERTS_LOG_FILE, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=alert_row.keys())
         writer.writeheader()
@@ -49,8 +52,11 @@ def append_to_local_history(record):
     # Keep only the last 14 days, so this file never grows unbounded
     cutoff = record["timestamp"] - (14 * 24 * 3600)
     with open(HISTORY_FILE, "r") as f:
-        rows = list(csv.DictReader(f))
-    rows = [r for r in rows if int(r["timestamp"]) >= cutoff]
+        all_rows = list(csv.DictReader(f))
+    rows = []
+    for row in all_rows:
+        if int(row["timestamp"]) >= cutoff:
+            rows.append(row)
     with open(HISTORY_FILE, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=record.keys())
         writer.writeheader()

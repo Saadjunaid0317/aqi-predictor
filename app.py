@@ -154,7 +154,10 @@ def load_models():
     models = {}
     for horizon, model_dir in MODEL_DIRS.items():
         path = os.path.join(model_dir, "model.pkl")
-        models[horizon] = joblib.load(path) if os.path.exists(path) else None
+        if os.path.exists(path):
+            models[horizon] = joblib.load(path)
+        else:
+            models[horizon] = None
     return models
 
 
@@ -170,10 +173,10 @@ def load_explainers():
         return {}, None
     background = pd.read_csv(SHAP_BACKGROUND_FILE)
     models = load_models()
-    explainers = {
-        horizon: shap.LinearExplainer(model, background)
-        for horizon, model in models.items() if model is not None
-    }
+    explainers = {}
+    for horizon, model in models.items():
+        if model is not None:
+            explainers[horizon] = shap.LinearExplainer(model, background)
     return explainers, background
 
 
@@ -205,7 +208,10 @@ if refresh:
     st.cache_data.clear()
     st.toast("Live data refreshed.", icon="✅")
 
-cache_key = datetime.now().strftime("%Y%m%d%H%M") if refresh else datetime.now().strftime("%Y%m%d%H")
+if refresh:
+    cache_key = datetime.now().strftime("%Y%m%d%H%M")
+else:
+    cache_key = datetime.now().strftime("%Y%m%d%H")
 
 models = load_models()
 
@@ -222,10 +228,10 @@ current_aqi = int(features_df["aqi"].iloc[0])
 cat_label, cat_color, cat_icon, cat_desc = aqi_band(current_aqi)
 as_of_dt = datetime.fromtimestamp(as_of_ts)
 
-forecast_values = {
-    horizon: float(model.predict(features_df[FEATURE_COLUMNS])[0])
-    for horizon, model in models.items() if model is not None
-}
+forecast_values = {}
+for horizon, model in models.items():
+    if model is not None:
+        forecast_values[horizon] = float(model.predict(features_df[FEATURE_COLUMNS])[0])
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -233,12 +239,23 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Hazardous AQI alert banner
 # ---------------------------------------------------------------------------
 
-alert_points = [("Now", current_aqi)] + [(HORIZON_LABELS[h], v) for h, v in forecast_values.items()]
-worst_label, worst_aqi = max(alert_points, key=lambda p: p[1])
+alert_points = [("Now", current_aqi)]
+for horizon, value in forecast_values.items():
+    alert_points.append((HORIZON_LABELS[horizon], value))
+
+worst_label = None
+worst_aqi = None
+for label, value in alert_points:
+    if worst_aqi is None or value > worst_aqi:
+        worst_label = label
+        worst_aqi = value
 
 if worst_aqi >= ALERT_THRESHOLD:
     w_label, w_color, w_icon, _ = aqi_band(worst_aqi)
-    triggered = [f"{label} ({v:.0f})" for label, v in alert_points if v >= ALERT_THRESHOLD]
+    triggered = []
+    for label, value in alert_points:
+        if value >= ALERT_THRESHOLD:
+            triggered.append(f"{label} ({value:.0f})")
     st.markdown(
         f'<div class="fade-card pulse" style="border-color:{w_color}; '
         f'background:linear-gradient(0deg, rgba(0,0,0,0) 0%, {w_color}22 100%); margin-bottom:1rem;">'
@@ -290,7 +307,10 @@ with hero_l:
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
 with hero_r:
-    pulse_class = "pulse" if current_aqi > 150 else ""
+    if current_aqi > 150:
+        pulse_class = "pulse"
+    else:
+        pulse_class = ""
     st.markdown(
         textwrap.dedent(f"""
         <div class="fade-card" style="margin-top: 1.2rem;">
@@ -353,11 +373,17 @@ for col, horizon in zip([f1, f2, f3], ["24h", "48h", "72h"]):
         p_label, p_color, p_icon, _ = aqi_band(pred)
         delta = pred - current_aqi
         if delta < -1:
-            delta_color, delta_arrow, delta_word = "#0ca30c", "▼", "improving"
+            delta_color = "#0ca30c"
+            delta_arrow = "▼"
+            delta_word = "improving"
         elif delta > 1:
-            delta_color, delta_arrow, delta_word = "#d03b3b", "▲", "worsening"
+            delta_color = "#d03b3b"
+            delta_arrow = "▲"
+            delta_word = "worsening"
         else:
-            delta_color, delta_arrow, delta_word = INK_MUTED, "▬", "steady"
+            delta_color = INK_MUTED
+            delta_arrow = "▬"
+            delta_word = "steady"
         st.markdown(
             f'<div class="fade-card forecast-card">'
             f'<div class="forecast-day">{HORIZON_LABELS[horizon]}</div>'
@@ -382,10 +408,13 @@ if not explainers:
         "(reads a spread of historical rows from Hopsworks) to enable this panel."
     )
 else:
+    def horizon_label(horizon):
+        return HORIZON_LABELS[horizon]
+
     explain_horizon = st.radio(
         "Explain the prediction for:",
         options=["24h", "48h", "72h"],
-        format_func=lambda h: HORIZON_LABELS[h],
+        format_func=horizon_label,
         horizontal=True,
         label_visibility="collapsed",
     )
@@ -396,10 +425,16 @@ else:
         base_value = float(explainer.expected_value)
         predicted = base_value + shap_row.sum()
 
+        feature_labels = []
+        feature_values = []
+        for column_name in FEATURE_COLUMNS:
+            feature_labels.append(FEATURE_DISPLAY_NAMES.get(column_name, column_name))
+            feature_values.append(input_row.iloc[0][column_name])
+
         contrib = pd.DataFrame({
             "feature": FEATURE_COLUMNS,
-            "label": [FEATURE_DISPLAY_NAMES.get(c, c) for c in FEATURE_COLUMNS],
-            "value": [input_row.iloc[0][c] for c in FEATURE_COLUMNS],
+            "label": feature_labels,
+            "value": feature_values,
             "shap": shap_row,
         })
         contrib["abs_shap"] = contrib["shap"].abs()
@@ -416,11 +451,19 @@ else:
             top = pd.concat([top, other_row], ignore_index=True)
         top = top.sort_values("shap")
 
-        bar_colors = ["#d03b3b" if v > 0 else "#0ca30c" for v in top["shap"]]
-        text_labels = [
-            row["label"] if pd.isna(row["value"]) else f"{row['label']} = {row['value']:.1f}"
-            for _, row in top.iterrows()
-        ]
+        bar_colors = []
+        for shap_value in top["shap"]:
+            if shap_value > 0:
+                bar_colors.append("#d03b3b")
+            else:
+                bar_colors.append("#0ca30c")
+
+        text_labels = []
+        for _, row in top.iterrows():
+            if pd.isna(row["value"]):
+                text_labels.append(row["label"])
+            else:
+                text_labels.append(f"{row['label']} = {row['value']:.1f}")
 
         fig3 = go.Figure(
             go.Bar(
@@ -469,9 +512,22 @@ if not history_df.empty:
         )
     )
 
-forecast_x = [as_of_dt] + [as_of_dt + timedelta(hours=int(h[:-1])) for h in ["24h", "48h", "72h"]]
-forecast_y = [current_aqi] + [forecast_values.get(h, None) for h in ["24h", "48h", "72h"]]
-marker_colors = [cat_color] + [aqi_band(v)[1] if v is not None else INK_MUTED for v in forecast_y[1:]]
+# Build the forecast line point by point: it starts at "now" (the current
+# reading) and then adds one point per horizon (24h, 48h, 72h).
+forecast_x = [as_of_dt]
+forecast_y = [current_aqi]
+marker_colors = [cat_color]
+for horizon in ["24h", "48h", "72h"]:
+    hours_ahead = int(horizon[:-1])
+    forecast_x.append(as_of_dt + timedelta(hours=hours_ahead))
+
+    predicted_value = forecast_values.get(horizon, None)
+    forecast_y.append(predicted_value)
+
+    if predicted_value is not None:
+        marker_colors.append(aqi_band(predicted_value)[1])
+    else:
+        marker_colors.append(INK_MUTED)
 
 fig2.add_trace(
     go.Scatter(

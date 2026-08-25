@@ -43,7 +43,10 @@ def calculate_aqi(pm2_5, pm10):
     pm25_index = calculate_sub_index(pm2_5, PM25_BREAKPOINTS)
     pm10_index = calculate_sub_index(pm10, PM10_BREAKPOINTS)
     aqi = max(pm25_index, pm10_index)
-    dominant = "PM2.5" if pm25_index >= pm10_index else "PM10"
+    if pm25_index >= pm10_index:
+        dominant = "PM2.5"
+    else:
+        dominant = "PM10"
     return round(aqi), dominant
 
 def extract_time_features(dt_unix, timezone_offset_seconds):
