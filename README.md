@@ -6,6 +6,8 @@ Built for the 10Pearls SHINE Internship, Data Sciences track. For the full write
 
 **Live dashboard:** https://aqi-predictor-nszy3iphgpcpwzmfejrxv2.streamlit.app/
 
+> Web/frontend development isn't my domain — my focus is data science, not UI engineering — so I relied heavily on AI assistance (Claude) to build the Streamlit dashboard's layout, styling, and charts. See [`Final_Report.md`](Final_Report.md#06-dashboard) for details on what's my own work versus AI-assisted.
+
 ![Dashboard screenshot](dashboard_screenshot.jpg)
 
 ## Features

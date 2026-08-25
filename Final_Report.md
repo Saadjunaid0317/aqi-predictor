@@ -151,6 +151,8 @@ The fix doesn't touch the required architecture: Hopsworks stays the feature sto
 
 ## 06. Dashboard
 
+> **A note on how this was built.** Web/frontend development is not my background — my focus for this internship is data science, not UI engineering. I used AI assistance (Claude) heavily for the Streamlit dashboard itself: the layout, CSS/styling, animations, and Plotly chart configuration. The data pipeline, feature engineering, model training/evaluation, and the SHAP explainability logic are my own work and understanding; the dashboard's visual presentation is where I leaned on AI help the most, since it falls outside my domain.
+
 A Streamlit app shows the current reading on a color-coded EPA gauge, six live weather/pollutant stat tiles, and three forecast cards (one per horizon) with a category badge and a delta arrow against the current reading. A combined chart plots recent actual AQI against the 3-day forecast on one timeline, with a dashed line marking the transition from history to prediction. AQI severity colors are always paired with a text label and an icon — never color alone — since the standard EPA palette fails contrast and colorblind-safety checks when used as a solid fill.
 
 ![Karachi AQI Forecast dashboard showing a gauge reading 70 (Moderate), current conditions tiles, and three forecast cards for Day 1 through Day 3.](dashboard_screenshot.jpg)
