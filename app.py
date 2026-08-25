@@ -46,6 +46,8 @@ AQI_BANDS = [
 MODEL_DIRS = {"24h": "model_24h", "48h": "model_48h", "72h": "model_72h"}
 HORIZON_LABELS = {"24h": "Day 1 (0-24h)", "48h": "Day 2 (24-48h)", "72h": "Day 3 (48-72h)"}
 SHAP_BACKGROUND_FILE = "shap_background.csv"
+ALERTS_LOG_FILE = "alerts_log.csv"
+ALERT_THRESHOLD = 151   # "Unhealthy" and worse
 
 FEATURE_DISPLAY_NAMES = {
     "hour": "Hour of day", "day": "Day of month", "month": "Month", "day_of_week": "Day of week",
@@ -220,7 +222,34 @@ current_aqi = int(features_df["aqi"].iloc[0])
 cat_label, cat_color, cat_icon, cat_desc = aqi_band(current_aqi)
 as_of_dt = datetime.fromtimestamp(as_of_ts)
 
+forecast_values = {
+    horizon: float(model.predict(features_df[FEATURE_COLUMNS])[0])
+    for horizon, model in models.items() if model is not None
+}
+
 st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Hazardous AQI alert banner
+# ---------------------------------------------------------------------------
+
+alert_points = [("Now", current_aqi)] + [(HORIZON_LABELS[h], v) for h, v in forecast_values.items()]
+worst_label, worst_aqi = max(alert_points, key=lambda p: p[1])
+
+if worst_aqi >= ALERT_THRESHOLD:
+    w_label, w_color, w_icon, _ = aqi_band(worst_aqi)
+    triggered = [f"{label} ({v:.0f})" for label, v in alert_points if v >= ALERT_THRESHOLD]
+    st.markdown(
+        f'<div class="fade-card pulse" style="border-color:{w_color}; '
+        f'background:linear-gradient(0deg, rgba(0,0,0,0) 0%, {w_color}22 100%); margin-bottom:1rem;">'
+        f'<span class="badge"><span class="dot" style="background:{w_color};"></span>'
+        f'{w_icon} Air quality alert &mdash; {w_label}</span>'
+        f'<p style="color:{INK_SECONDARY}; margin-top:10px; font-size:0.92rem;">'
+        f'AQI reaches <b style="color:{w_color};">{worst_aqi:.0f}</b> at <b>{worst_label}</b>. '
+        f'Triggered by: {", ".join(triggered)}. Limit outdoor exposure, especially for children, '
+        f'the elderly, and anyone with respiratory conditions.</p></div>',
+        unsafe_allow_html=True,
+    )
 
 # ---------------------------------------------------------------------------
 # Hero row: gauge + category summary
@@ -310,11 +339,10 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown("##### 3-day forecast")
 f1, f2, f3 = st.columns(3)
-forecast_values = {}
 for col, horizon in zip([f1, f2, f3], ["24h", "48h", "72h"]):
-    model = models.get(horizon)
+    pred = forecast_values.get(horizon)
     with col:
-        if model is None:
+        if pred is None:
             st.markdown(
                 f'<div class="fade-card forecast-card">'
                 f'<div class="forecast-day">{HORIZON_LABELS[horizon]}</div>'
@@ -322,8 +350,6 @@ for col, horizon in zip([f1, f2, f3], ["24h", "48h", "72h"]):
                 unsafe_allow_html=True,
             )
             continue
-        pred = float(model.predict(features_df[FEATURE_COLUMNS])[0])
-        forecast_values[horizon] = pred
         p_label, p_color, p_icon, _ = aqi_band(pred)
         delta = pred - current_aqi
         if delta < -1:
@@ -490,6 +516,34 @@ else:
             f"{max_gap:.1f}h off its exact target. Accuracy improves as more hourly "
             f"history accumulates (24h/48h/72h ago need 1/2/3 days respectively)."
         )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Alert history
+# ---------------------------------------------------------------------------
+
+st.markdown("##### Recent hazardous-AQI alerts")
+if os.path.exists(ALERTS_LOG_FILE):
+    alerts_df = pd.read_csv(ALERTS_LOG_FILE)
+    alerts_df["when"] = pd.to_datetime(alerts_df["timestamp"], unit="s")
+    alerts_df = alerts_df.sort_values("when", ascending=False)
+    for _, row in alerts_df.head(10).iterrows():
+        a_label, a_color, a_icon, _ = aqi_band(row["aqi"])
+        st.markdown(
+            f'<div class="fade-card" style="padding:0.7rem 1.1rem; margin-bottom:8px;">'
+            f'<span class="badge"><span class="dot" style="background:{a_color};"></span>'
+            f'{a_icon} {a_label} &middot; AQI {row["aqi"]:.0f}</span>'
+            f'<span style="color:{INK_MUTED}; font-size:0.82rem; margin-left:10px;">'
+            f'{row["when"].strftime("%b %d, %Y - %I:%M %p")}</span></div>',
+            unsafe_allow_html=True,
+        )
+    st.caption(f"Logged automatically by the hourly pipeline whenever AQI ≥ {ALERT_THRESHOLD} (Unhealthy or worse).")
+else:
+    st.caption(
+        f"No hazardous readings logged yet — the hourly pipeline records an entry here "
+        f"whenever AQI ≥ {ALERT_THRESHOLD} (Unhealthy or worse)."
+    )
 
 st.markdown("<br>", unsafe_allow_html=True)
 

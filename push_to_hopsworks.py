@@ -10,6 +10,33 @@ load_dotenv()
 HOPSWORKS_API_KEY = os.getenv("HOPSWORKS_API_KEY")
 
 HISTORY_FILE = "recent_history.csv"
+ALERTS_LOG_FILE = "alerts_log.csv"
+ALERT_THRESHOLD = 151   # "Unhealthy" and worse
+ALERT_RETENTION_DAYS = 30
+
+def log_alert_if_hazardous(record):
+    if record["aqi"] < ALERT_THRESHOLD:
+        return
+
+    alert_row = {"timestamp": record["timestamp"], "aqi": record["aqi"],
+                 "dominant_pollutant": record["dominant_pollutant"]}
+    file_exists = os.path.exists(ALERTS_LOG_FILE)
+    with open(ALERTS_LOG_FILE, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=alert_row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(alert_row)
+
+    cutoff = record["timestamp"] - (ALERT_RETENTION_DAYS * 24 * 3600)
+    with open(ALERTS_LOG_FILE, "r") as f:
+        rows = list(csv.DictReader(f))
+    rows = [r for r in rows if int(r["timestamp"]) >= cutoff]
+    with open(ALERTS_LOG_FILE, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=alert_row.keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"ALERT: AQI {record['aqi']} >= {ALERT_THRESHOLD} - logged to {ALERTS_LOG_FILE}")
 
 def append_to_local_history(record):
     file_exists = os.path.exists(HISTORY_FILE)
@@ -46,5 +73,6 @@ fg = fs.get_or_create_feature_group(
 
 fg.insert(df)
 append_to_local_history(record)
+log_alert_if_hazardous(record)
 
 print("Inserted record into Hopsworks feature group.")
