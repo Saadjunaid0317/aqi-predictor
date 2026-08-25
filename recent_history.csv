@@ -1,0 +1,2 @@
+timestamp,hour,day,month,day_of_week,temp,humidity,wind_speed,pm2_5,pm10,co,no2,so2,o3,aqi,dominant_pollutant
+1787657892,16,25,8,1,31.07,51,6.69,19.22,78.2,70.66,0.07,0.39,36.36,70,PM2.5
