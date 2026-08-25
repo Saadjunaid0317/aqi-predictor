@@ -5,6 +5,9 @@ on:
     - cron: "0 * * * *"     # runs at the top of every hour
   workflow_dispatch:         # lets us trigger it manually too, for testing
 
+permissions:
+  contents: write   # needed so the "Commit updated recent history" step can push
+
 jobs:
   run-feature-pipeline:
     runs-on: ubuntu-latest    # GitHub gives us a fresh Linux machine for this run
