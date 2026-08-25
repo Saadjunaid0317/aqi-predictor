@@ -37,4 +37,7 @@ jobs:
           git add recent_history.csv
           if [ -f alerts_log.csv ]; then git add alerts_log.csv; fi
           git diff --staged --quiet || git commit -m "Update recent history [automated]"
+          # Someone may have pushed other commits since this run checked out -
+          # rebase onto them rather than risk a rejected push.
+          git pull --rebase origin main
           git push
