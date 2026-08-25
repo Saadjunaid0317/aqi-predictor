@@ -7,3 +7,4 @@ xgboost
 joblib
 streamlit
 plotly
+shap

@@ -3,6 +3,7 @@ import textwrap
 import joblib
 import pandas as pd
 import plotly.graph_objects as go
+import shap
 import streamlit as st
 from datetime import datetime, timedelta
 
@@ -44,6 +45,16 @@ AQI_BANDS = [
 
 MODEL_DIRS = {"24h": "model_24h", "48h": "model_48h", "72h": "model_72h"}
 HORIZON_LABELS = {"24h": "Day 1 (0-24h)", "48h": "Day 2 (24-48h)", "72h": "Day 3 (48-72h)"}
+SHAP_BACKGROUND_FILE = "shap_background.csv"
+
+FEATURE_DISPLAY_NAMES = {
+    "hour": "Hour of day", "day": "Day of month", "month": "Month", "day_of_week": "Day of week",
+    "temp": "Temperature", "humidity": "Humidity", "wind_speed": "Wind speed",
+    "pm2_5": "PM2.5", "pm10": "PM10", "co": "CO", "no2": "NO2", "so2": "SO2", "o3": "O3",
+    "aqi": "Current AQI", "aqi_24h_ago": "AQI 24h ago", "aqi_48h_ago": "AQI 48h ago",
+    "aqi_72h_ago": "AQI 72h ago", "aqi_change_24h": "24h AQI change",
+    "aqi_rolling_mean_24h": "24h rolling avg AQI", "aqi_rolling_std_24h": "24h rolling AQI volatility",
+}
 
 # Metrics from the last registered training run (register_models.py) -
 # not recomputed live since that needs a full Hopsworks historical read.
@@ -149,6 +160,19 @@ def load_models():
 def load_live_data(_cache_key):
     features_df, as_of_ts, gaps = get_live_input()
     return features_df, as_of_ts, gaps
+
+
+@st.cache_resource(show_spinner=False)
+def load_explainers():
+    if not os.path.exists(SHAP_BACKGROUND_FILE):
+        return {}, None
+    background = pd.read_csv(SHAP_BACKGROUND_FILE)
+    models = load_models()
+    explainers = {
+        horizon: shap.LinearExplainer(model, background)
+        for horizon, model in models.items() if model is not None
+    }
+    return explainers, background
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -315,6 +339,87 @@ for col, horizon in zip([f1, f2, f3], ["24h", "48h", "72h"]):
             f'<span class="badge"><span class="dot" style="background:{p_color};"></span>{p_icon} {p_label}</span>'
             f'<div class="forecast-delta" style="color:{delta_color};">{delta_arrow} {abs(delta):.0f} pts &middot; {delta_word}</div></div>',
             unsafe_allow_html=True,
+        )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# SHAP explanation panel
+# ---------------------------------------------------------------------------
+
+st.markdown("##### Why this forecast?")
+explainers, shap_background = load_explainers()
+
+if not explainers:
+    st.info(
+        "No SHAP background sample found — run `compute_shap_background.py` once "
+        "(reads a spread of historical rows from Hopsworks) to enable this panel."
+    )
+else:
+    explain_horizon = st.radio(
+        "Explain the prediction for:",
+        options=["24h", "48h", "72h"],
+        format_func=lambda h: HORIZON_LABELS[h],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    explainer = explainers.get(explain_horizon)
+    if explainer is not None:
+        input_row = features_df[FEATURE_COLUMNS]
+        shap_row = explainer.shap_values(input_row)[0]
+        base_value = float(explainer.expected_value)
+        predicted = base_value + shap_row.sum()
+
+        contrib = pd.DataFrame({
+            "feature": FEATURE_COLUMNS,
+            "label": [FEATURE_DISPLAY_NAMES.get(c, c) for c in FEATURE_COLUMNS],
+            "value": [input_row.iloc[0][c] for c in FEATURE_COLUMNS],
+            "shap": shap_row,
+        })
+        contrib["abs_shap"] = contrib["shap"].abs()
+        contrib = contrib.sort_values("abs_shap", ascending=False)
+
+        TOP_N = 8
+        top = contrib.iloc[:TOP_N].copy()
+        rest = contrib.iloc[TOP_N:]
+        if len(rest) > 0:
+            other_row = pd.DataFrame([{
+                "feature": "_other", "label": f"All other features ({len(rest)})",
+                "value": None, "shap": rest["shap"].sum(), "abs_shap": rest["shap"].sum(),
+            }])
+            top = pd.concat([top, other_row], ignore_index=True)
+        top = top.sort_values("shap")
+
+        bar_colors = ["#d03b3b" if v > 0 else "#0ca30c" for v in top["shap"]]
+        text_labels = [
+            row["label"] if pd.isna(row["value"]) else f"{row['label']} = {row['value']:.1f}"
+            for _, row in top.iterrows()
+        ]
+
+        fig3 = go.Figure(
+            go.Bar(
+                x=top["shap"], y=text_labels, orientation="h",
+                marker=dict(color=bar_colors),
+                hovertemplate="%{y}<br>impact %{x:+.1f} AQI pts<extra></extra>",
+            )
+        )
+        fig3.add_vline(x=0, line=dict(color=BASELINE, width=1))
+        fig3.update_layout(
+            height=340,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font={"color": INK_SECONDARY, "family": "Inter"},
+            xaxis=dict(title="Impact on predicted AQI (points)", showgrid=True, gridcolor=GRIDLINE,
+                       zeroline=False, color=INK_MUTED),
+            yaxis=dict(showgrid=False, color=INK_PRIMARY),
+        )
+        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+        st.caption(
+            f"Baseline (typical predicted AQI for this horizon): **{base_value:.0f}** → "
+            f"this forecast: **{predicted:.0f}**. Red bars push the forecast up (worse air "
+            f"quality), green bars pull it down (better air quality). Computed with "
+            f"`shap.LinearExplainer` against a 150-row sample spread across the training period."
         )
 
 st.markdown("<br>", unsafe_allow_html=True)
