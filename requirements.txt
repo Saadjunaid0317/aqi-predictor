@@ -5,3 +5,5 @@ hopsworks[python]
 scikit-learn
 xgboost
 joblib
+streamlit
+plotly
