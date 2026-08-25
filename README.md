@@ -4,6 +4,8 @@ A serverless system that forecasts Karachi's Air Quality Index 24, 48, and 72 ho
 
 Built for the 10Pearls SHINE Internship, Data Sciences track. For the full write-up (architecture, model evaluation, the production bug that shaped the design, and known limitations), see [`Final_Report.md`](Final_Report.md).
 
+**Live dashboard:** https://aqi-predictor-nszy3iphgpcpwzmfejrxv2.streamlit.app/
+
 ![Dashboard screenshot](dashboard_screenshot.jpg)
 
 ## Features

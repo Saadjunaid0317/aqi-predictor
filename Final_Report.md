@@ -8,6 +8,7 @@ A serverless system forecasting Karachi's Air Quality Index one, two, and three 
 |---|---|
 | **Location** | Karachi, Pakistan · 24.8607°N, 67.0011°E |
 | **Repo** | Saadjunaid0317/aqi-predictor |
+| **Live dashboard** | https://aqi-predictor-nszy3iphgpcpwzmfejrxv2.streamlit.app/ |
 | **Training window** | Aug 2023 – present, 26k+ hourly rows |
 | **Status** | pipeline, registry, dashboard, explainability — live |
 | **Deadline** | Sept 4, 2026 |
@@ -197,15 +198,15 @@ Against the original brief's final-submission checklist:
 
 - ✅ End-to-end prediction system
 - ✅ Automated, scalable pipeline
-- ✅ Interactive dashboard
+- ✅ Interactive dashboard — publicly deployed at https://aqi-predictor-nszy3iphgpcpwzmfejrxv2.streamlit.app/
 - ✅ This report
+- ✅ Hazardous-AQI alerting (dashboard banner + automated alert log)
 
 Stretch goals not yet attempted, in rough priority order:
 
 1. A deep learning model (LSTM) alongside Ridge, as the brief suggests exploring — not attempted here; a peer's LSTM result wasn't independently verified.
 2. A formal EDA writeup of seasonal/diurnal AQI patterns in the training data.
-3. Hazardous-AQI alerting.
-4. Multi-city support beyond Karachi.
+3. Multi-city support beyond Karachi.
 
 ---
 
