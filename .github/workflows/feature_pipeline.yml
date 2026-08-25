@@ -26,3 +26,11 @@ jobs:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
         run: python push_to_hopsworks.py
+
+      - name: Commit updated recent history
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add recent_history.csv
+          git diff --staged --quiet || git commit -m "Update recent history [automated]"
+          git push
