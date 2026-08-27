@@ -1,10 +1,17 @@
 import numpy as np
+import pandas as pd
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import StandardScaler
 from xgboost import XGBRegressor
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
 
 from prepare_training_data import load_training_data
+
+tf.random.set_seed(42)
 
 X_train, X_test, targets = load_training_data()
 
@@ -31,11 +38,64 @@ for horizon in ["24h", "48h", "72h"]:
         r2 = evaluate(name, y_test, model.predict(X_test))
         results[(horizon, name)] = r2
 
+# --- LSTM (deep learning candidate) ---
+# Unlike the models above, an LSTM needs sequence-shaped input (a window of
+# past hours, not a single row) and scaled features, so it's built and
+# evaluated separately here, then folded into the same results/summary.
+WINDOW_SIZE = 24  # hours of past context per prediction
+
+X_full = pd.concat([X_train, X_test])
+split_index = len(X_train)
+
+scaler = StandardScaler().fit(X_train)
+X_full_scaled = scaler.transform(X_full)
+
+def build_sequences(X_values, y_values, window_size):
+    Xs, ys, target_rows = [], [], []
+    for i in range(window_size, len(X_values) + 1):
+        Xs.append(X_values[i - window_size:i])
+        ys.append(y_values[i - 1])
+        target_rows.append(i - 1)
+    return np.array(Xs), np.array(ys), np.array(target_rows)
+
+def build_lstm(n_features):
+    model = keras.Sequential([
+        layers.Input(shape=(WINDOW_SIZE, n_features)),
+        layers.LSTM(32, dropout=0.2),
+        layers.Dense(16, activation="relu"),
+        layers.Dense(1),
+    ])
+    model.compile(optimizer="adam", loss="mse")
+    return model
+
+for horizon in ["24h", "48h", "72h"]:
+    y_train, y_test = targets[horizon]
+    y_full = pd.concat([y_train, y_test]).values
+
+    X_seq, y_seq, target_rows = build_sequences(X_full_scaled, y_full, WINDOW_SIZE)
+    is_test = target_rows >= split_index
+    X_seq_train, y_seq_train = X_seq[~is_test], y_seq[~is_test]
+    X_seq_test, y_seq_test = X_seq[is_test], y_seq[is_test]
+
+    lstm = build_lstm(n_features=X_seq.shape[2])
+    early_stop = keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
+    lstm.fit(
+        X_seq_train, y_seq_train,
+        validation_split=0.1, epochs=50, batch_size=32,
+        callbacks=[early_stop], verbose=0,
+    )
+
+    print(f"\n=== Day target: {horizon} (LSTM) ===")
+    r2 = evaluate("LSTM", y_seq_test, lstm.predict(X_seq_test, verbose=0).ravel())
+    results[(horizon, "LSTM")] = r2
+
+model_names = list(models.keys()) + ["LSTM"]
+
 print("\n=== Best model per horizon ===")
 for horizon in ["24h", "48h", "72h"]:
     best_name = None
     best_r2 = None
-    for name in models.keys():
+    for name in model_names:
         r2 = results[(horizon, name)]
         if best_r2 is None or r2 > best_r2:
             best_r2 = r2

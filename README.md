@@ -42,7 +42,7 @@ feature_pipeline.py        Fetches live weather/pollution data, computes AQI + f
 push_to_hopsworks.py       Hourly job: inserts into Hopsworks, updates local history + alert log
 backfill_pipeline.py       One-time historical backfill from Open-Meteo
 prepare_training_data.py   Builds per-day-average training targets from the feature store
-train_model.py             Compares Ridge / Random Forest / Gradient Boosting / XGBoost
+train_model.py             Compares Ridge / Random Forest / Gradient Boosting / XGBoost / LSTM
 register_models.py         Daily job: retrains + registers models in the Hopsworks Model Registry
 live_features.py           Builds the live feature row the dashboard predicts on
 
@@ -64,6 +64,12 @@ Final_Report.md            Full internship report
 git clone https://github.com/Saadjunaid0317/aqi-predictor.git
 cd aqi-predictor
 pip install -r requirements.txt
+```
+
+To also run `train_model.py`'s model comparison (it includes an LSTM candidate), install `requirements-dev.txt` too — TensorFlow is kept out of the base `requirements.txt` so the dashboard and automation workflows don't carry that weight:
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
 **2. Set up API keys**

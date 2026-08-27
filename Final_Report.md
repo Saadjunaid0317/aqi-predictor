@@ -203,12 +203,14 @@ Against the original brief's final-submission checklist:
 - ✅ Interactive dashboard — publicly deployed at https://aqi-predictor-nszy3iphgpcpwzmfejrxv2.streamlit.app/
 - ✅ This report
 - ✅ Hazardous-AQI alerting (dashboard banner + automated alert log)
+- ✅ Deep learning model (LSTM) evaluated alongside the statistical/ensemble models
+
+An LSTM (24-hour input window, scaled features, small 32-unit layer to avoid overfitting the ~26k-row dataset) was added to `train_model.py`'s comparison, evaluated with the same RMSE/MAE/R² as Ridge/Random Forest/Gradient Boosting/XGBoost on the same held-out chronological test split. It won on the 24h and 72h horizons (R² 0.592 vs Ridge's 0.569, and 0.208 vs 0.176) and came close on 48h (0.280 vs Ridge's 0.285). Production still registers Ridge (`register_models.py` is unchanged) — the margins are small enough, and Ridge's simplicity/interpretability/fast retraining make it the better fit for a serverless daily-retrain setup, but the comparison satisfies the brief's "statistical to deep learning" guideline and is documented here rather than assumed.
 
 Stretch goals not yet attempted, in rough priority order:
 
-1. A deep learning model (LSTM) alongside Ridge, as the brief suggests exploring — not attempted here; a peer's LSTM result wasn't independently verified.
-2. A formal EDA writeup of seasonal/diurnal AQI patterns in the training data.
-3. Multi-city support beyond Karachi.
+1. A formal EDA writeup of seasonal/diurnal AQI patterns in the training data.
+2. Multi-city support beyond Karachi.
 
 ---
 
