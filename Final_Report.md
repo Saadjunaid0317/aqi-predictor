@@ -207,10 +207,11 @@ Against the original brief's final-submission checklist:
 
 An LSTM (24-hour input window, scaled features, small 32-unit layer to avoid overfitting the ~26k-row dataset) was added to `train_model.py`'s comparison, evaluated with the same RMSE/MAE/R² as Ridge/Random Forest/Gradient Boosting/XGBoost on the same held-out chronological test split. It won on the 24h and 72h horizons (R² 0.592 vs Ridge's 0.569, and 0.208 vs 0.176) and came close on 48h (0.280 vs Ridge's 0.285). Production still registers Ridge (`register_models.py` is unchanged) — the margins are small enough, and Ridge's simplicity/interpretability/fast retraining make it the better fit for a serverless daily-retrain setup, but the comparison satisfies the brief's "statistical to deep learning" guideline and is documented here rather than assumed.
 
-Stretch goals not yet attempted, in rough priority order:
+- ✅ A full project write-up covering the API selection, data cleaning, feature engineering, every model tried and its results, the reasoning behind the final model, and every blocker hit along the way — see [`EDA_Writeup.md`](EDA_Writeup.md).
 
-1. A formal EDA writeup of seasonal/diurnal AQI patterns in the training data.
-2. Multi-city support beyond Karachi.
+Stretch goals not yet attempted:
+
+1. Multi-city support beyond Karachi.
 
 ---
 
