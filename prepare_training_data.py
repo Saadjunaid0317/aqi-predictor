@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
@@ -10,6 +11,19 @@ HOPSWORKS_API_KEY = os.getenv("HOPSWORKS_API_KEY")
 project = hopsworks.login(api_key_value=HOPSWORKS_API_KEY)
 fs = project.get_feature_store()
 fg = fs.get_feature_group(name="aqi_features", version=1)
+
+def read_with_retry(query, max_attempts=3, delay_seconds=30):
+    # Hopsworks' Arrow Flight Query Service occasionally drops the connection
+    # mid-read ("Socket closed"). That's a transient server-side hiccup, not
+    # a bad query, so retrying the same chunk after a short wait usually works.
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return query.read()
+        except Exception as e:
+            if attempt == max_attempts:
+                raise
+            print(f"  -> read failed ({e.__class__.__name__}), retrying in {delay_seconds}s (attempt {attempt}/{max_attempts})...")
+            time.sleep(delay_seconds)
 
 def read_feature_group_in_chunks(fg, start_date, end_date, chunk_days=60):
     start_ts = int(datetime.fromisoformat(start_date).timestamp())
@@ -24,7 +38,7 @@ def read_feature_group_in_chunks(fg, start_date, end_date, chunk_days=60):
         print(f"Reading {datetime.fromtimestamp(current_start).date()} to {datetime.fromtimestamp(current_end).date()}...")
 
         query = fg.filter((fg.timestamp >= current_start) & (fg.timestamp < current_end))
-        chunk_df = query.read()
+        chunk_df = read_with_retry(query)
         print(f"  -> {len(chunk_df)} rows")
         chunks.append(chunk_df)
 
