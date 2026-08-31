@@ -17,8 +17,10 @@ st.set_page_config(
     page_title="Karachi AQI Forecast",
     page_icon="🌫️",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
+
+REPO_URL = "https://github.com/Saadjunaid0317/aqi-predictor"
 
 FEATURE_COLUMNS = [
     "hour", "day", "month", "day_of_week",
@@ -144,6 +146,46 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
+# ---------------------------------------------------------------------------
+# Sidebar - project context, AQI legend, deployed models, documentation
+# ---------------------------------------------------------------------------
+
+with st.sidebar:
+    st.markdown("### 🌫️ Pearls AQI Predictor")
+    st.caption("10Pearls SHINE Internship &middot; Data Sciences track", unsafe_allow_html=True)
+
+    st.markdown("**City**")
+    st.markdown("Karachi, Pakistan &middot; 24.86&deg;N, 67.00&deg;E", unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("**EPA AQI scale**")
+    for lo, hi, label, color, icon, _ in AQI_BANDS:
+        hi_label = hi if hi < 10_000 else "500+"
+        st.markdown(
+            f'<div style="display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:0.83rem;">'
+            f'<span class="dot" style="background:{color}; flex-shrink:0;"></span>'
+            f'<span style="color:{INK_MUTED}; min-width:52px;">{lo}&ndash;{hi_label}</span>'
+            f'<span style="color:{INK_SECONDARY};">{icon} {label}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
+    st.markdown("**Deployed models**")
+    for horizon in ["24h", "48h", "72h"]:
+        m = TRAINING_METRICS[horizon]
+        st.markdown(
+            f'<div style="font-size:0.83rem; margin-bottom:8px;">'
+            f'<b style="color:{INK_PRIMARY};">{HORIZON_LABELS[horizon]}</b><br>'
+            f'<span style="color:{INK_MUTED};">Ridge Regression &middot; R&sup2; {m["r2"]:.2f}</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("---")
+    st.markdown("**Documentation**")
+    st.markdown(f"[GitHub repository]({REPO_URL})")
+    st.markdown(f"[Final report]({REPO_URL}/blob/main/Final_Report.md)")
+    st.markdown(f"[Build journey & EDA]({REPO_URL}/blob/main/EDA_Writeup.md)")
 
 # ---------------------------------------------------------------------------
 # Data loading (cached)
@@ -539,8 +581,22 @@ fig2.add_trace(
     )
 )
 
-for threshold in [50, 100, 150, 200, 300]:
-    fig2.add_hline(y=threshold, line=dict(color=GRIDLINE, width=1, dash="dot"))
+# Shade the plot area by EPA health category, the same colors as the gauge,
+# so the trend line's health zone is visible at a glance without reading the
+# axis - not just a dotted line at each threshold.
+chart_values = list(forecast_y)
+if not history_df.empty:
+    chart_values += history_df["aqi"].tolist()
+y_max = max(chart_values) * 1.15 if chart_values else 200
+y_max = max(y_max, 160)
+
+for lo, hi, _, color, _, _ in AQI_BANDS:
+    if lo >= y_max:
+        continue
+    fig2.add_hrect(
+        y0=lo, y1=min(hi, y_max),
+        fillcolor=color, opacity=0.08, line_width=0, layer="below",
+    )
 
 fig2.add_vline(x=as_of_dt, line=dict(color=BASELINE, width=1.5, dash="dot"))
 fig2.add_annotation(x=as_of_dt, y=1.05, yref="paper", text="now", showarrow=False,
@@ -555,7 +611,7 @@ fig2.update_layout(
     hovermode="x unified",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color=INK_SECONDARY)),
     xaxis=dict(showgrid=False, color=INK_MUTED, linecolor=BASELINE),
-    yaxis=dict(showgrid=True, gridcolor=GRIDLINE, color=INK_MUTED, title="AQI", zeroline=False),
+    yaxis=dict(showgrid=True, gridcolor=GRIDLINE, color=INK_MUTED, title="AQI", zeroline=False, range=[0, y_max]),
 )
 st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
 
