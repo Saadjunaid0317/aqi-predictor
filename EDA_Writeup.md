@@ -139,13 +139,3 @@ The fix: since my hourly script already has each record sitting in memory right 
 **A training run failed randomly with a "socket closed" error.** One day my automated daily training job just failed out of nowhere with a connection error while reading from Hopsworks. Looked into it and it was a one-off network hiccup on Hopsworks' side, not anything wrong with my code (the same script worked fine the day before and after). Added a small retry — if reading a chunk fails, wait a bit and try again a couple times before giving up — so a random blip like that doesn't kill the whole day's training run anymore.
 
 **Other people's suspiciously perfect results.** A couple of times, classmates reported numbers that seemed way too good (like R² of 0.997, basically a "perfect" model). I looked at the actual numbers and they didn't make mathematical sense together for a 3-day-ahead AQI forecast — that combination of a tiny error and a near-perfect R² usually means the model accidentally got to "cheat" somehow (most commonly, a feature that leaks information from the future into training, or the data wasn't split in time order). I didn't chase copying their approach — I'd rather have honest numbers I understand than borrowed numbers I can't explain.
-
----
-
-## 7. What's still left
-
-Multi-city support (this whole thing is built just for Karachi right now) is the one thing on the original wishlist I haven't gotten to. Everything else from the brief — the pipeline, the automation, the dashboard, SHAP explanations, hazardous AQI alerts, and now this write-up plus the deep learning model comparison — is done.
-
----
-
-*One honest note: I used AI help (Claude) quite a bit while building the dashboard's look and feel, since frontend/web stuff isn't really my area — that's already called out in the main report. Everything about the data, the features, the models, and the actual debugging in this write-up is my own work and understanding.*

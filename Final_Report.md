@@ -209,10 +209,6 @@ An LSTM (24-hour input window, scaled features, small 32-unit layer to avoid ove
 
 - ✅ A full project write-up covering the API selection, data cleaning, feature engineering, every model tried and its results, the reasoning behind the final model, and every blocker hit along the way — see [`EDA_Writeup.md`](EDA_Writeup.md).
 
-Stretch goals not yet attempted:
-
-1. Multi-city support beyond Karachi.
-
 ---
 
 *Pearls AQI Predictor · 10Pearls SHINE Internship · Deadline: Sept 4, 2026*
