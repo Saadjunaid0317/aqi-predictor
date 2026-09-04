@@ -45,10 +45,12 @@ prepare_training_data.py   Builds per-day-average training targets from the feat
 train_model.py             Compares Ridge / Random Forest / Gradient Boosting / XGBoost / LSTM
 register_models.py         Daily job: retrains + registers models in the Hopsworks Model Registry
 live_features.py           Builds the live feature row the dashboard predicts on
+log_predictions.py         Hourly job: logs each run's 24h/48h/72h forecasts for later accuracy tracking
 
 model_24h/ model_48h/ model_72h/   Trained model artifacts (also registered in Hopsworks)
 recent_history.csv         Rolling 14-day local cache, updated hourly
 alerts_log.csv             Log of hazardous AQI readings (created once one occurs)
+predictions_log.csv        Log of past forecasts, matched against actuals for the dashboard's accuracy chart
 shap_background.csv        Background sample for the SHAP explainer, refreshed daily
 
 .github/workflows/         The two scheduled GitHub Actions jobs
