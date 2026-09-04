@@ -49,7 +49,27 @@ MODEL_DIRS = {"24h": "model_24h", "48h": "model_48h", "72h": "model_72h"}
 HORIZON_LABELS = {"24h": "Day 1 (0-24h)", "48h": "Day 2 (24-48h)", "72h": "Day 3 (48-72h)"}
 SHAP_BACKGROUND_FILE = "shap_background.csv"
 ALERTS_LOG_FILE = "alerts_log.csv"
+PREDICTIONS_LOG_FILE = "predictions_log.csv"
 ALERT_THRESHOLD = 151   # "Unhealthy" and worse
+
+# Distinct from AQI_BANDS on purpose - these plot raw pollutant concentrations,
+# not severity, so red/green (which mean "bad"/"good" everywhere else on this
+# page) are deliberately avoided here to not imply a severity reading.
+POLLUTANT_COLUMNS = {
+    "pm2_5": ("PM2.5", "#3987e5"),
+    "pm10": ("PM10", "#5ec8d8"),
+    "co": ("CO", "#b083e8"),
+    "no2": ("NO2", "#e89a3c"),
+    "so2": ("SO2", "#e85c9a"),
+    "o3": ("O3", "#d9c04a"),
+}
+
+DATE_RANGE_OPTIONS = {
+    "24 hours": timedelta(hours=24),
+    "3 days": timedelta(days=3),
+    "7 days": timedelta(days=7),
+    "14 days": timedelta(days=14),
+}
 
 FEATURE_DISPLAY_NAMES = {
     "hour": "Hour of day", "day": "Day of month", "month": "Month", "day_of_week": "Day of week",
@@ -187,6 +207,21 @@ with st.sidebar:
     st.markdown(f"[Final report]({REPO_URL}/blob/main/Final_Report.md)")
     st.markdown(f"[Build journey & EDA]({REPO_URL}/blob/main/EDA_Writeup.md)")
 
+    st.markdown("---")
+    st.markdown("**Display options**")
+    auto_refresh = st.checkbox("Auto-refresh page", value=False)
+    if auto_refresh:
+        refresh_minutes = st.selectbox("Every", [5, 10, 15], index=0, format_func=lambda m: f"{m} min")
+        st.caption("Reloads the whole page automatically. Turn off if you're mid-read.")
+    else:
+        refresh_minutes = None
+
+if refresh_minutes:
+    st.markdown(
+        f'<meta http-equiv="refresh" content="{refresh_minutes * 60}">',
+        unsafe_allow_html=True,
+    )
+
 # ---------------------------------------------------------------------------
 # Data loading (cached)
 # ---------------------------------------------------------------------------
@@ -231,6 +266,14 @@ def load_history(_cache_key):
     return df.sort_values("datetime")
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def load_predictions(_cache_key):
+    if not os.path.exists(PREDICTIONS_LOG_FILE):
+        return pd.DataFrame()
+    df = pd.read_csv(PREDICTIONS_LOG_FILE)
+    return df.sort_values("target_timestamp")
+
+
 # ---------------------------------------------------------------------------
 # Header
 # ---------------------------------------------------------------------------
@@ -265,6 +308,7 @@ except Exception as e:
     st.stop()
 
 history_df = load_history(cache_key)
+predictions_df = load_predictions(cache_key)
 
 current_aqi = int(features_df["aqi"].iloc[0])
 cat_label, cat_color, cat_icon, cat_desc = aqi_band(current_aqi)
@@ -353,6 +397,15 @@ with hero_r:
         pulse_class = "pulse"
     else:
         pulse_class = ""
+
+    age_minutes = (datetime.now() - as_of_dt).total_seconds() / 60
+    if age_minutes < 90:
+        freshness_color, freshness_word = "#0ca30c", "fresh"
+    elif age_minutes < 180:
+        freshness_color, freshness_word = "#fab219", "aging"
+    else:
+        freshness_color, freshness_word = "#d03b3b", "stale"
+
     st.markdown(
         textwrap.dedent(f"""
         <div class="fade-card" style="margin-top: 1.2rem;">
@@ -361,7 +414,9 @@ with hero_r:
             </span>
             <p style="color:{INK_SECONDARY}; margin-top:12px; font-size:0.95rem; line-height:1.5;">{cat_desc}</p>
             <p style="color:{INK_MUTED}; font-size:0.8rem; margin-top:14px;">
-                As of {as_of_dt.strftime('%b %d, %Y - %I:%M %p')} &middot; dominant pollutant:
+                As of {as_of_dt.strftime('%b %d, %Y - %I:%M %p')}
+                (<span style="color:{freshness_color};">&#9679;</span> {age_minutes:.0f} min ago, {freshness_word})
+                &middot; dominant pollutant:
                 <b style="color:{INK_SECONDARY};">{features_df['dominant_pollutant'].iloc[0]}</b>
             </p>
         </div>
@@ -539,14 +594,27 @@ st.markdown("<br>", unsafe_allow_html=True)
 # Trend chart: recent history -> now -> forecast
 # ---------------------------------------------------------------------------
 
-st.markdown("##### AQI trend: recent history & forecast")
+trend_header_l, trend_header_r = st.columns([3, 2])
+with trend_header_l:
+    st.markdown("##### AQI trend: recent history & forecast")
+with trend_header_r:
+    range_choice = st.select_slider(
+        "Lookback window", options=list(DATE_RANGE_OPTIONS.keys()), value="7 days",
+        label_visibility="collapsed",
+    )
+
+range_cutoff = as_of_dt - DATE_RANGE_OPTIONS[range_choice]
+if not history_df.empty:
+    windowed_history_df = history_df[history_df["datetime"] >= range_cutoff]
+else:
+    windowed_history_df = history_df
 
 fig2 = go.Figure()
 
-if not history_df.empty:
+if not windowed_history_df.empty:
     fig2.add_trace(
         go.Scatter(
-            x=history_df["datetime"], y=history_df["aqi"],
+            x=windowed_history_df["datetime"], y=windowed_history_df["aqi"],
             mode="lines", name="Actual (recent history)",
             line=dict(color=BLUE, width=2.5),
             fill="tozeroy", fillcolor="rgba(57,135,229,0.08)",
@@ -585,8 +653,8 @@ fig2.add_trace(
 # so the trend line's health zone is visible at a glance without reading the
 # axis - not just a dotted line at each threshold.
 chart_values = list(forecast_y)
-if not history_df.empty:
-    chart_values += history_df["aqi"].tolist()
+if not windowed_history_df.empty:
+    chart_values += windowed_history_df["aqi"].tolist()
 y_max = max(chart_values) * 1.15 if chart_values else 200
 y_max = max(y_max, 160)
 
@@ -627,6 +695,141 @@ else:
             f"⚠️ Lookback data is still sparse — the furthest lag lookup was "
             f"{max_gap:.1f}h off its exact target. Accuracy improves as more hourly "
             f"history accumulates (24h/48h/72h ago need 1/2/3 days respectively)."
+        )
+
+    dl_col1, dl_col2 = st.columns([1, 5])
+    with dl_col1:
+        st.download_button(
+            "⬇ Download data (CSV)",
+            data=windowed_history_df.drop(columns=["datetime"]).to_csv(index=False),
+            file_name=f"karachi_aqi_history_{range_choice.replace(' ', '_')}.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Pollutant trend chart
+# ---------------------------------------------------------------------------
+
+st.markdown("##### Pollutant levels over time")
+
+if windowed_history_df.empty:
+    st.info("No local history yet for this window — see the note above.")
+else:
+    selected_pollutants = st.multiselect(
+        "Pollutants to show",
+        options=list(POLLUTANT_COLUMNS.keys()),
+        default=["pm2_5", "pm10"],
+        format_func=lambda p: POLLUTANT_COLUMNS[p][0],
+        label_visibility="collapsed",
+    )
+
+    if selected_pollutants:
+        fig_poll = go.Figure()
+        for pollutant in selected_pollutants:
+            label, color = POLLUTANT_COLUMNS[pollutant]
+            fig_poll.add_trace(
+                go.Scatter(
+                    x=windowed_history_df["datetime"], y=windowed_history_df[pollutant],
+                    mode="lines", name=label,
+                    line=dict(color=color, width=2),
+                    hovertemplate=f"%{{x|%b %d, %I:%M %p}}<br>{label} %{{y:.1f}} &micro;g/m&sup3;<extra></extra>",
+                )
+            )
+        fig_poll.update_layout(
+            height=320,
+            margin=dict(l=10, r=10, t=20, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font={"color": INK_SECONDARY, "family": "Inter"},
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color=INK_SECONDARY)),
+            xaxis=dict(showgrid=False, color=INK_MUTED, linecolor=BASELINE),
+            yaxis=dict(showgrid=True, gridcolor=GRIDLINE, color=INK_MUTED, title="Concentration (µg/m³)", zeroline=False),
+        )
+        st.plotly_chart(fig_poll, use_container_width=True, config={"displayModeBar": False})
+        st.caption(
+            "Raw pollutant concentrations (µg/m³, as reported by OpenWeather) feeding the AQI "
+            "calculation, over the same lookback window selected above."
+        )
+    else:
+        st.caption("Pick at least one pollutant above to plot it.")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Forecast accuracy over time: predicted vs. what actually happened
+# ---------------------------------------------------------------------------
+
+st.markdown("##### Forecast accuracy over time")
+
+matured = pd.DataFrame()
+if not predictions_df.empty and not history_df.empty:
+    matured = predictions_df[predictions_df["target_timestamp"] <= as_of_ts].copy()
+
+if matured.empty:
+    st.info(
+        "No verifiable forecasts yet. Every hourly run now logs its 24h/48h/72h predictions "
+        "to `predictions_log.csv` — this chart fills in automatically once enough time has "
+        "passed for those predictions to be checked against what actually happened "
+        "(the 72h ones take up to 3 days to mature)."
+    )
+else:
+    def accuracy_horizon_label(horizon):
+        return HORIZON_LABELS[horizon]
+
+    accuracy_horizon = st.radio(
+        "Check accuracy for:", options=["24h", "48h", "72h"],
+        format_func=accuracy_horizon_label, horizontal=True,
+        label_visibility="collapsed", key="accuracy_horizon",
+    )
+
+    horizon_matured = matured[matured["horizon"] == accuracy_horizon].sort_values("target_timestamp")
+    hist_for_merge = history_df[["timestamp", "aqi"]].sort_values("timestamp")
+
+    merged = pd.merge_asof(
+        horizon_matured, hist_for_merge,
+        left_on="target_timestamp", right_on="timestamp",
+        direction="nearest", tolerance=3600 * 3,
+    ).dropna(subset=["aqi"])
+
+    if merged.empty:
+        st.caption("Not enough matured, matchable predictions in this window yet — check back later.")
+    else:
+        merged["target_datetime"] = pd.to_datetime(merged["target_timestamp"], unit="s")
+        merged["error"] = (merged["aqi"] - merged["predicted_aqi"]).abs()
+
+        fig_acc = go.Figure()
+        fig_acc.add_trace(go.Scatter(
+            x=merged["target_datetime"], y=merged["aqi"],
+            mode="lines+markers", name="Actual",
+            line=dict(color=BLUE, width=2.5), marker=dict(size=6),
+            hovertemplate="%{x|%b %d, %I:%M %p}<br>Actual AQI %{y:.0f}<extra></extra>",
+        ))
+        fig_acc.add_trace(go.Scatter(
+            x=merged["target_datetime"], y=merged["predicted_aqi"],
+            mode="lines+markers", name="Predicted",
+            line=dict(color=INK_SECONDARY, width=2, dash="dash"), marker=dict(size=6),
+            hovertemplate="%{x|%b %d, %I:%M %p}<br>Predicted AQI %{y:.0f}<extra></extra>",
+        ))
+        fig_acc.update_layout(
+            height=320,
+            margin=dict(l=10, r=10, t=20, b=10),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font={"color": INK_SECONDARY, "family": "Inter"},
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color=INK_SECONDARY)),
+            xaxis=dict(showgrid=False, color=INK_MUTED, linecolor=BASELINE),
+            yaxis=dict(showgrid=True, gridcolor=GRIDLINE, color=INK_MUTED, title="AQI", zeroline=False),
+        )
+        st.plotly_chart(fig_acc, use_container_width=True, config={"displayModeBar": False})
+        st.caption(
+            f"Mean absolute error over these {len(merged)} matured {accuracy_horizon} forecasts: "
+            f"**{merged['error'].mean():.1f} AQI points** — this is the model actually being checked "
+            f"against reality, not the backtested metric reported in the training report."
         )
 
 st.markdown("<br>", unsafe_allow_html=True)

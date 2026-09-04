@@ -32,12 +32,18 @@ jobs:
           HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
         run: python push_to_hopsworks.py
 
+      - name: Log this hour's forecasts for later accuracy tracking
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+        run: python log_predictions.py
+
       - name: Commit updated recent history
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add recent_history.csv
           if [ -f alerts_log.csv ]; then git add alerts_log.csv; fi
+          if [ -f predictions_log.csv ]; then git add predictions_log.csv; fi
           git diff --staged --quiet || git commit -m "Update recent history [automated]"
           # Someone may have pushed other commits since this run checked out -
           # rebase onto them rather than risk a rejected push.
